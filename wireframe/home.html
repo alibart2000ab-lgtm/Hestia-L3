@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hestia</title>
+<style>
+  :root{
+    --bg:#fafafa;
+    --text-dark:#3c3839;
+    --peach-light:#fce0d5;
+    --peach-lighter:#ffdccc;
+    --orange:#f48457;
+    --user-bubble:#ffd3bf;
+    --bot-bubble:#ffeee6;
+    --input-pill:#fdeee8;
+    --timestamp:#a98d80;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{
+    height:100%;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:#1c1c1c;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .phone{
+    position:relative;
+    width:402px;
+    height:874px;
+    background:var(--bg);
+    border-radius:0px;
+    overflow:hidden;
+    box-shadow:0 30px 80px rgba(0,0,0,.5);
+  }
+
+  /* ================= HOME ================= */
+  .status-bar{
+    position:absolute;
+    top:0; left:0; right:0;
+    height:60px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:0 28px;
+    font-size:15px;
+    font-weight:600;
+    color:var(--text-dark);
+    z-index:20;
+  }
+  .status-icons{display:flex;gap:6px;align-items:center;}
+  .status-icons svg{display:block;}
+
+  .home-header{
+    position:absolute;
+    top:60px; left:0; right:0;
+    height:52px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:0 28px;
+    z-index:15;
+  }
+  .home-header h1{
+    font-size:32px;
+    font-weight:800;
+    color:var(--text-dark);
+    letter-spacing:-0.5px;
+  }
+  .avatar-btn{
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    background:var(--orange);
+    border:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    cursor:pointer;
+  }
+
+  .mascot{
+    position:absolute;
+    top:20%;
+    left:50%;
+    transform:translateX(-50%);
+    width:340px;
+    height:340px;
+    z-index:2;
+    animation:float 4s ease-in-out infinite;
+  }
+  .mascot img{width:100%;height:100%;object-fit:contain;}
+  @keyframes float{
+    0%,100%{transform:translateX(-50%) translateY(0);}
+    50%{transform:translateX(-50%) translateY(-10px);}
+  }
+
+  .greeting{
+    position:absolute;
+    top:60.5%;
+    left:0; right:0;
+    text-align:center;
+    font-size:24px;
+    font-weight:800;
+    color:var(--text-dark);
+    z-index:2;
+  }
+  .subgreeting{
+    position:absolute;
+    top:64.5%;
+    left:0; right:0;
+    text-align:center;
+    font-size:16px;
+    font-weight:500;
+    color:#a3a3a3;
+    z-index:2;
+  }
+
+  .actions{
+    position:absolute;
+    top:84.5%;
+    left:0; right:0;
+    display:flex;
+    justify-content:center;
+    gap:38px;
+  }
+  .action{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    background:none;
+    border:none;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .action .circle{
+    width:60px;
+    height:60px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--peach-lighter);
+    color:var(--text-dark);
+    transition:transform .15s ease;
+  }
+  .action.primary .circle{
+    width:68px;
+    height:68px;
+    background:var(--orange);
+    color:#fff;
+  }
+  .action:active .circle{transform:scale(.92);}
+  .action span{
+    font-size:14px;
+    font-weight:600;
+    color:var(--text-dark);
+  }
+
+  /* ================= CHAT OVERLAY ================= */
+  .overlay-backdrop{
+    position:absolute;
+    inset:0;
+    background:rgba(60,58,58,.55);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .3s ease;
+    z-index:9;
+  }
+  .overlay-backdrop.open{
+    opacity:1;
+    pointer-events:auto;
+  }
+
+  .chat-sheet{
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:0;
+    height:85.1%;
+    background:var(--bg);
+    border-radius:26px 26px 0 0;
+    box-shadow:0 -10px 30px rgba(0,0,0,.2);
+    transform:translateY(100%);
+    transition:transform .35s cubic-bezier(.32,.72,0,1);
+    z-index:11;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .chat-sheet.open{
+    transform:translateY(0);
+  }
+
+  .sheet-handle{
+    display:flex;
+    justify-content:center;
+    padding:14px 0 10px;
+  }
+  .sheet-handle .bar{
+    width:50px;
+    height:5px;
+    border-radius:3px;
+    background:var(--text-dark);
+  }
+
+  .chat-header{
+    padding:2px 24px 18px;
+  }
+  .chat-header h2{
+    font-size:24px;
+    font-weight:800;
+    color:var(--text-dark);
+  }
+
+  .chat-messages{
+    flex:1;
+    overflow-y:auto;
+    padding:4px 20px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+
+  .msg-row{
+    display:flex;
+    align-items:flex-end;
+    gap:8px;
+  }
+  .msg-row.user{ justify-content:flex-end; }
+  .msg-row.bot{ justify-content:flex-start; }
+  .msg-avatar{
+    width:34px;
+    height:34px;
+    flex-shrink:0;
+  }
+  .msg-avatar img{width:100%;height:100%;object-fit:contain;}
+  .bubble{
+    max-width:74%;
+    border-radius:20px;
+    padding:12px 16px 10px;
+  }
+  .msg-row.user .bubble{ background:var(--user-bubble); }
+  .msg-row.bot .bubble{ background:var(--bot-bubble); }
+  .bubble p{
+    font-size:15.5px;
+    color:var(--text-dark);
+    line-height:1.35;
+  }
+  .bubble time{
+    display:block;
+    text-align:right;
+    font-size:11px;
+    color:var(--timestamp);
+    margin-top:4px;
+  }
+
+  .chat-input-bar{
+    padding:16px 14px 26px;
+    background:linear-gradient(180deg, rgba(249,219,207,0) 0%, #f7bba3 100%);
+  }
+  .chat-input-wrap{
+    display:flex;
+    align-items:center;
+    background:var(--input-pill);
+    border-radius:30px;
+    padding:6px 6px 6px 22px;
+  }
+  .chat-input-wrap input{
+    flex:1;
+    border:none;
+    background:transparent;
+    outline:none;
+    font-size:15px;
+    color:var(--text-dark);
+    font-family:inherit;
+  }
+  .chat-input-wrap input::placeholder{ color:#c9a892; }
+  .mic-btn{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:var(--peach-lighter);
+    border:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--text-dark);
+    cursor:pointer;
+    flex-shrink:0;
+    transition:background .15s ease, color .15s ease, transform .15s ease;
+  }
+  .mic-btn.send{
+    background:var(--orange);
+    color:#fff;
+  }
+  .mic-btn:active{ transform:scale(.9); }
+
+  /* typing indicator */
+  .typing-dots{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    padding:6px 2px 2px;
+  }
+  .typing-dots span{
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:#c98a5f;
+    opacity:.5;
+    animation:typing-bounce 1.2s infinite ease-in-out;
+  }
+  .typing-dots span:nth-child(2){ animation-delay:.15s; }
+  .typing-dots span:nth-child(3){ animation-delay:.3s; }
+  @keyframes typing-bounce{
+    0%,60%,100%{ transform:translateY(0); opacity:.5; }
+    30%{ transform:translateY(-4px); opacity:1; }
+  }
+
+  .close-btn{
+    position:absolute;
+    top:16px;
+    right:18px;
+    background:rgba(0,0,0,.06);
+    border:none;
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    color:var(--text-dark);
+    z-index:2;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone">
+
+  <!-- ===================== HOME SCREEN ===================== -->
+  <div class="status-bar">
+    <span>9:41</span>
+    <div class="status-icons">
+      <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><rect x="0" y="7" width="3" height="5" rx="1" fill="#3c3839"/><rect x="5" y="5" width="3" height="7" rx="1" fill="#3c3839"/><rect x="10" y="3" width="3" height="9" rx="1" fill="#3c3839"/><rect x="15" y="0" width="3" height="12" rx="1" fill="#3c3839"/></svg>
+      <svg width="18" height="13" viewBox="0 0 18 13" fill="none"><path d="M9 12.5C9.55 12.5 10 12.05 10 11.5C10 10.95 9.55 10.5 9 10.5C8.45 10.5 8 10.95 8 11.5C8 12.05 8.45 12.5 9 12.5Z" fill="#3c3839"/><path d="M9 0C5.4 0 2.1 1.35 -0.35 3.55L1.15 5.05C3.3 3.15 6 2 9 2C12 2 14.7 3.15 16.85 5.05L18.35 3.55C15.9 1.35 12.6 0 9 0Z" fill="#3c3839"/><path d="M9 4.5C6.6 4.5 4.4 5.4 2.75 6.85L4.25 8.35C5.55 7.2 7.2 6.5 9 6.5C10.8 6.5 12.45 7.2 13.75 8.35L15.25 6.85C13.6 5.4 11.4 4.5 9 4.5Z" fill="#3c3839"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#3c3839" stroke-width="1"/><rect x="2.5" y="2.5" width="17" height="7" rx="1.2" fill="#3c3839"/><rect x="22" y="4" width="1.6" height="4" rx="0.8" fill="#3c3839"/></svg>
+    </div>
+  </div>
+
+  <div class="home-header">
+    <h1>Hestia</h1>
+    <button class="avatar-btn" aria-label="Profilo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="white" stroke-width="2"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <div class="mascot">
+    <img src="hestia.png" alt="Hestia">
+  </div>
+
+  <div class="greeting">Ciao Sara, come va?</div>
+  <div class="subgreeting">Raccontami tutto</div>
+
+  <div class="actions">
+    <button class="action" id="openChatBtn" aria-label="Apri chat">
+      <div class="circle">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.5 8.5 0 01-8.5 8.5H6l-3 2 1-4.5A8.5 8.5 0 1121 11.5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="9" cy="11.5" r="1" fill="currentColor"/><circle cx="12.5" cy="11.5" r="1" fill="currentColor"/><circle cx="16" cy="11.5" r="1" fill="currentColor"/></svg>
+      </div>
+      <span>Chat</span>
+    </button>
+
+    <button class="action primary" aria-label="Parla">
+      <div class="circle">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0014 0M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <span>Parla</span>
+    </button>
+
+    <button class="action" aria-label="Attività">
+      <div class="circle">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 17l5-6 4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 6h5v5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <span>Attività</span>
+    </button>
+  </div>
+
+  <!-- ===================== CHAT OVERLAY ===================== -->
+  <div class="overlay-backdrop" id="backdrop"></div>
+
+  <div class="chat-sheet" id="chatSheet">
+    <button class="close-btn" id="closeChatBtn" aria-label="Chiudi chat">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+    </button>
+    <div class="sheet-handle"><div class="bar"></div></div>
+    <div class="chat-header"><h2>Chat</h2></div>
+
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg-row user">
+        <div class="bubble">
+          <p>Abbassa tapparelle soggiorno</p>
+          <time>12:30</time>
+        </div>
+      </div>
+
+      <div class="msg-row bot">
+        <div class="msg-avatar">
+          <img src="hestia_avatar.png" alt="Hestia">
+        </div>
+        <div class="bubble">
+          <p>Tapparelle soggiorno abbassate</p>
+          <time>12:31</time>
+        </div>
+      </div>
+
+      <div class="msg-row user">
+        <div class="bubble">
+          <p>Accendi luci cucina 70%</p>
+          <time>13:30</time>
+        </div>
+      </div>
+
+      <div class="msg-row bot">
+        <div class="msg-avatar">
+          <img src="hestia_avatar.png" alt="Hestia">
+        </div>
+        <div class="bubble">
+          <p>Luci cucina impostate al 70%</p>
+          <time>13:31</time>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input-bar">
+      <div class="chat-input-wrap">
+        <input type="text" id="chatInput" placeholder="Scrivi un messaggio...">
+        <button class="mic-btn" id="micSendBtn" aria-label="Messaggio vocale">
+          <svg id="micIcon" width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0014 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg id="sendIcon" width="17" height="17" viewBox="0 0 24 24" fill="none" style="display:none"><path d="M4 12l16-8-6 8 6 8-16-8z" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const openBtn = document.getElementById('openChatBtn');
+  const closeBtn = document.getElementById('closeChatBtn');
+  const backdrop = document.getElementById('backdrop');
+  const sheet = document.getElementById('chatSheet');
+  const messages = document.getElementById('chatMessages');
+  const input = document.getElementById('chatInput');
+  const micSendBtn = document.getElementById('micSendBtn');
+  const micIcon = document.getElementById('micIcon');
+  const sendIcon = document.getElementById('sendIcon');
+
+  function openChat(){
+    backdrop.classList.add('open');
+    sheet.classList.add('open');
+    setTimeout(()=>{ input.focus(); messages.scrollTop = messages.scrollHeight; }, 350);
+  }
+  function closeChat(){
+    backdrop.classList.remove('open');
+    sheet.classList.remove('open');
+  }
+
+  openBtn.addEventListener('click', openChat);
+  closeBtn.addEventListener('click', closeChat);
+  backdrop.addEventListener('click', closeChat);
+
+  function nowTime(){
+    const now = new Date();
+    return now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  }
+
+  function scrollToBottom(){
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function addUserMessage(text){
+    const row = document.createElement('div');
+    row.className = 'msg-row user';
+    row.innerHTML = `<div class="bubble"><p></p><time>${nowTime()}</time></div>`;
+    row.querySelector('p').textContent = text;
+    messages.appendChild(row);
+    scrollToBottom();
+  }
+
+  function addBotMessage(text){
+    const row = document.createElement('div');
+    row.className = 'msg-row bot';
+    row.innerHTML = `
+      <div class="msg-avatar"><img src="hestia_avatar.png" alt="Hestia"></div>
+      <div class="bubble"><p></p><time>${nowTime()}</time></div>`;
+    row.querySelector('p').textContent = text;
+    messages.appendChild(row);
+    scrollToBottom();
+  }
+
+  function showTyping(){
+    const row = document.createElement('div');
+    row.className = 'msg-row bot';
+    row.id = 'typingRow';
+    row.innerHTML = `
+      <div class="msg-avatar"><img src="hestia_avatar.png" alt="Hestia"></div>
+      <div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+    messages.appendChild(row);
+    scrollToBottom();
+  }
+
+  function hideTyping(){
+    const row = document.getElementById('typingRow');
+    if(row) row.remove();
+  }
+
+  /* ---- semplice motore generativo di risposte domotiche ---- */
+  function generateReply(text){
+    const t = text.toLowerCase();
+
+    const pct = (t.match(/(\d{1,3})\s?%/) || [])[1];
+    const rooms = ['soggiorno','cucina','camera','bagno','studio','corridoio','ingresso','terrazzo'];
+    const room = rooms.find(r => t.includes(r));
+    const roomTxt = room ? ` ${room}` : '';
+
+    if(/luc[ei]/.test(t)){
+      if(/spegn/.test(t)) return `Luci${roomTxt || ''} spente.`;
+      if(/accend/.test(t) || pct) return `Luci${roomTxt || ''} impostate${pct ? ` al ${pct}%` : ' accese'}.`;
+      return `Fatto, ho regolato le luci${roomTxt}.`;
+    }
+    if(/tapparell|tend/.test(t)){
+      if(/alza|apri/.test(t)) return `Tapparelle${roomTxt || ''} alzate.`;
+      if(/abbass|chiud/.test(t)) return `Tapparelle${roomTxt || ''} abbassate.`;
+      return `Tapparelle${roomTxt || ''} regolate.`;
+    }
+    if(/termosta|temperatura|riscald|clima/.test(t)){
+      const gradi = (t.match(/(\d{1,2})\s?°?/) || [])[1];
+      return `Temperatura${roomTxt || ''} impostata${gradi ? ` a ${gradi}°` : ''}.`;
+    }
+    if(/allarme|sicurezza/.test(t)){
+      if(/disattiv|spegn/.test(t)) return 'Allarme disattivato.';
+      if(/attiv|accend/.test(t)) return 'Allarme attivato.';
+      return 'Sistema di sicurezza aggiornato.';
+    }
+    if(/porta|cancello/.test(t)){
+      if(/apri/.test(t)) return `Porta${roomTxt || ''} aperta.`;
+      if(/chiud/.test(t)) return `Porta${roomTxt || ''} chiusa.`;
+    }
+    if(/^ciao|buongiorno|buonasera|salve/.test(t)){
+      return 'Ciao Sara! Come posso aiutarti in casa oggi?';
+    }
+    if(/grazie/.test(t)){
+      return 'Di niente, sono sempre qui!';
+    }
+    if(/come va|come stai/.test(t)){
+      return 'Tutto tranquillo in casa. Tu come stai?';
+    }
+
+    const fallback = [
+      'Ho capito, me ne occupo subito.',
+      'Fatto! C\'è altro che posso sistemare per te?',
+      'Certo, procedo con la richiesta.',
+      'Ricevuto, aggiorno la casa di conseguenza.'
+    ];
+    return fallback[Math.floor(Math.random() * fallback.length)];
+  }
+
+  function updateSendButton(){
+    const hasText = input.value.trim().length > 0;
+    micSendBtn.classList.toggle('send', hasText);
+    micIcon.style.display = hasText ? 'none' : '';
+    sendIcon.style.display = hasText ? '' : 'none';
+    micSendBtn.setAttribute('aria-label', hasText ? 'Invia messaggio' : 'Messaggio vocale');
+  }
+
+  /* cronologia inviata all'API (ruoli 'user' / 'assistant') */
+  const conversation = [];
+
+  async function fetchApiReply(text){
+    conversation.push({ role: 'user', content: text });
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: conversation }),
+    });
+    if(!res.ok){
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    conversation.push({ role: 'assistant', content: data.reply });
+    return data.reply;
+  }
+
+  async function sendMessage(){
+    const text = input.value.trim();
+    if(!text) return;
+    addUserMessage(text);
+    input.value = '';
+    updateSendButton();
+
+    showTyping();
+    try{
+      const reply = await fetchApiReply(text);
+      hideTyping();
+      addBotMessage(reply);
+    }catch(err){
+      console.warn('API non disponibile, uso risposta simulata locale:', err.message);
+      const delay = 400 + Math.random() * 400;
+      await new Promise(r => setTimeout(r, delay));
+      hideTyping();
+      addBotMessage(generateReply(text));
+    }
+  }
+
+  input.addEventListener('input', updateSendButton);
+  input.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') sendMessage();
+  });
+  micSendBtn.addEventListener('click', ()=>{
+    if(input.value.trim().length > 0) sendMessage();
+  });
+</script>
+
+</body>
+</html>
