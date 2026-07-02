@@ -93,9 +93,16 @@
     animation:float 4s ease-in-out infinite;
   }
   .mascot img{width:100%;height:100%;object-fit:contain;}
+  .mascot.active{
+    animation:mascot-pulse 1s ease-in-out infinite;
+  }
   @keyframes float{
     0%,100%{transform:translateX(-50%) translateY(0);}
     50%{transform:translateX(-50%) translateY(-10px);}
+  }
+  @keyframes mascot-pulse{
+    0%,100%{transform:translateX(-50%) scale(1);}
+    50%{transform:translateX(-50%) scale(1.07);}
   }
 
   .greeting{
@@ -107,6 +114,8 @@
     font-weight:800;
     color:var(--text-dark);
     z-index:2;
+    padding:0 32px;
+    transition:opacity .15s ease;
   }
   .subgreeting{
     position:absolute;
@@ -118,6 +127,26 @@
     color:#a3a3a3;
     z-index:2;
   }
+  .hero-dots{
+    position:absolute;
+    top:65.5%;
+    left:0; right:0;
+    display:none;
+    justify-content:center;
+    align-items:center;
+    gap:5px;
+    z-index:2;
+  }
+  .hero-dots span{
+    width:5px;
+    height:5px;
+    border-radius:50%;
+    background:#b3aeab;
+    opacity:.5;
+    animation:typing-bounce 1.2s infinite ease-in-out;
+  }
+  .hero-dots span:nth-child(2){ animation-delay:.15s; }
+  .hero-dots span:nth-child(3){ animation-delay:.3s; }
 
   .actions{
     position:absolute;
@@ -153,8 +182,25 @@
     height:68px;
     background:var(--orange);
     color:#fff;
+    position:relative;
   }
   .action:active .circle{transform:scale(.92);}
+  .action.primary.listening .circle::before,
+  .action.primary.listening .circle::after{
+    content:'';
+    position:absolute;
+    inset:0;
+    border-radius:50%;
+    border:2px solid var(--orange);
+    animation:pulse-ring 1.6s ease-out infinite;
+  }
+  .action.primary.listening .circle::after{
+    animation-delay:.5s;
+  }
+  @keyframes pulse-ring{
+    0%{ transform:scale(1); opacity:.6; }
+    100%{ transform:scale(1.9); opacity:0; }
+  }
   .action span{
     font-size:14px;
     font-weight:600;
@@ -361,12 +407,13 @@
     </button>
   </div>
 
-  <div class="mascot">
+  <div class="mascot" id="mascotEl">
     <img src="hestia.png" alt="Hestia">
   </div>
 
-  <div class="greeting">Ciao Sara, come va?</div>
-  <div class="subgreeting">Raccontami tutto</div>
+  <div class="greeting" id="greetingText">Ciao Sara, come va?</div>
+  <div class="subgreeting" id="subgreetingText">Raccontami tutto</div>
+  <div class="hero-dots" id="heroDots"><span></span><span></span><span></span></div>
 
   <div class="actions">
     <button class="action" id="openChatBtn" aria-label="Apri chat">
@@ -376,7 +423,7 @@
       <span>Chat</span>
     </button>
 
-    <button class="action primary" aria-label="Parla">
+    <button class="action primary" id="parlaBtn" aria-label="Parla">
       <div class="circle">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0014 0M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </div>
@@ -583,19 +630,32 @@
   const conversation = [];
 
   async function fetchApiReply(text){
-    conversation.push({ role: 'user', content: text });
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: conversation }),
+      body: JSON.stringify({ messages: [...conversation, { role: 'user', content: text }] }),
     });
     if(!res.ok){
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || `HTTP ${res.status}`);
     }
     const data = await res.json();
-    conversation.push({ role: 'assistant', content: data.reply });
     return data.reply;
+  }
+
+  /* prova l'API reale, ricade sul motore locale se non disponibile */
+  async function getReply(text){
+    conversation.push({ role: 'user', content: text });
+    let reply;
+    try{
+      reply = await fetchApiReply(text);
+    }catch(err){
+      console.warn('API non disponibile, uso risposta simulata locale:', err.message);
+      await new Promise(r => setTimeout(r, 400 + Math.random() * 400));
+      reply = generateReply(text);
+    }
+    conversation.push({ role: 'assistant', content: reply });
+    return reply;
   }
 
   async function sendMessage(){
@@ -606,17 +666,9 @@
     updateSendButton();
 
     showTyping();
-    try{
-      const reply = await fetchApiReply(text);
-      hideTyping();
-      addBotMessage(reply);
-    }catch(err){
-      console.warn('API non disponibile, uso risposta simulata locale:', err.message);
-      const delay = 400 + Math.random() * 400;
-      await new Promise(r => setTimeout(r, delay));
-      hideTyping();
-      addBotMessage(generateReply(text));
-    }
+    const reply = await getReply(text);
+    hideTyping();
+    addBotMessage(reply);
   }
 
   input.addEventListener('input', updateSendButton);
@@ -625,6 +677,144 @@
   });
   micSendBtn.addEventListener('click', ()=>{
     if(input.value.trim().length > 0) sendMessage();
+  });
+
+  /* ================= INTERFACCIA VOCALE ("Parla") ================= */
+  const parlaBtn = document.getElementById('parlaBtn');
+  const mascotEl = document.getElementById('mascotEl');
+  const greetingText = document.getElementById('greetingText');
+  const subgreetingText = document.getElementById('subgreetingText');
+  const heroDots = document.getElementById('heroDots');
+
+  const DEFAULT_GREETING = greetingText.textContent;
+  const DEFAULT_SUBGREETING = subgreetingText.textContent;
+
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let isListening = false;
+  let gotSpeechResult = false;
+  let latestTranscript = '';
+  let revertTimer = null;
+
+  if(SpeechRecognitionCtor){
+    recognition = new SpeechRecognitionCtor();
+    recognition.lang = 'it-IT';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      isListening = true;
+      gotSpeechResult = false;
+      latestTranscript = '';
+      enterListeningUI();
+    };
+
+    recognition.onresult = (event) => {
+      let text = '';
+      for(let i = 0; i < event.results.length; i++){
+        text += event.results[i][0].transcript;
+      }
+      latestTranscript = text.trim();
+      gotSpeechResult = latestTranscript.length > 0;
+      if(latestTranscript) greetingText.textContent = `"${latestTranscript}"`;
+    };
+
+    recognition.onerror = (event) => {
+      console.warn('Speech recognition error:', event.error);
+    };
+
+    recognition.onend = () => {
+      isListening = false;
+      parlaBtn.classList.remove('listening');
+      if(gotSpeechResult && latestTranscript){
+        handleVoiceResult(latestTranscript);
+      }else{
+        showHeroMessage('Non ho sentito nulla', 'Tocca il microfono per riprovare', 2200);
+      }
+    };
+  }
+
+  function clearRevertTimer(){
+    if(revertTimer){ clearTimeout(revertTimer); revertTimer = null; }
+  }
+
+  function scheduleRevert(ms){
+    clearRevertTimer();
+    revertTimer = setTimeout(resetHero, ms);
+  }
+
+  function resetHero(){
+    greetingText.textContent = DEFAULT_GREETING;
+    subgreetingText.textContent = DEFAULT_SUBGREETING;
+    subgreetingText.style.display = '';
+    heroDots.style.display = 'none';
+    mascotEl.classList.remove('active');
+    parlaBtn.classList.remove('listening');
+  }
+
+  function enterListeningUI(){
+    clearRevertTimer();
+    parlaBtn.classList.add('listening');
+    mascotEl.classList.add('active');
+    greetingText.textContent = 'Ti sto ascoltando';
+    subgreetingText.style.display = 'none';
+    heroDots.style.display = 'flex';
+  }
+
+  function showHeroMessage(title, subtitle, delay){
+    mascotEl.classList.remove('active');
+    parlaBtn.classList.remove('listening');
+    heroDots.style.display = 'none';
+    subgreetingText.style.display = '';
+    greetingText.textContent = title;
+    subgreetingText.textContent = subtitle;
+    scheduleRevert(delay);
+  }
+
+  function speak(text){
+    if(!('speechSynthesis' in window)) return;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'it-IT';
+    const voices = speechSynthesis.getVoices();
+    const itVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('it'));
+    if(itVoice) utter.voice = itVoice;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utter);
+  }
+
+  async function handleVoiceResult(transcript){
+    greetingText.textContent = `"${transcript}"`;
+    subgreetingText.style.display = 'none';
+    heroDots.style.display = 'flex';
+    addUserMessage(transcript);
+
+    const reply = await getReply(transcript);
+
+    addBotMessage(reply);
+    mascotEl.classList.remove('active');
+    heroDots.style.display = 'none';
+    subgreetingText.style.display = '';
+    greetingText.textContent = reply;
+    subgreetingText.textContent = 'Tocca il microfono per parlare ancora';
+    speak(reply);
+    scheduleRevert(5000);
+  }
+
+  parlaBtn.addEventListener('click', () => {
+    if(!recognition){
+      showHeroMessage('Riconoscimento vocale non supportato', 'Prova da Chrome su desktop o Android', 3000);
+      return;
+    }
+    if(isListening){
+      recognition.stop();
+      return;
+    }
+    closeChat();
+    try{
+      recognition.start();
+    }catch(err){
+      console.warn('Impossibile avviare il riconoscimento vocale:', err);
+    }
   });
 </script>
 
