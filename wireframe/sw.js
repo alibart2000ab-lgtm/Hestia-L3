@@ -1,5 +1,6 @@
-const CACHE_NAME = 'hestia-v1';
+const CACHE_NAME = 'hestia-v2';
 const APP_SHELL = [
+  './index.html',
   './home.html',
   './manifest.json',
   './hestia.png',
@@ -31,6 +32,23 @@ self.addEventListener('fetch', (event) => {
   // Le chiamate API vanno sempre in rete, mai in cache
   if (request.url.includes('/api/')) return;
 
+  // Le pagine HTML sono sempre prese dalla rete (così gli aggiornamenti
+  // si vedono subito), con la cache solo come fallback offline
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Gli altri asset (immagini, icone, manifest) usano cache-first
+  // con aggiornamento in background
   event.respondWith(
     caches.match(request).then((cached) => {
       const network = fetch(request)

@@ -95,6 +95,13 @@
     align-items:center;
     padding:0 28px;
     z-index:5;
+    opacity:1;
+    pointer-events:auto;
+    transition:opacity .2s ease;
+  }
+  .home-header.hidden{
+    opacity:0;
+    pointer-events:none;
   }
   .home-header h1{
     font-size:32px;
@@ -690,15 +697,18 @@
   const micSendBtn = document.getElementById('micSendBtn');
   const micIcon = document.getElementById('micIcon');
   const sendIcon = document.getElementById('sendIcon');
+  const homeHeader = document.querySelector('.home-header');
 
   function openChat(){
     backdrop.classList.add('open');
     sheet.classList.add('open');
+    homeHeader.classList.add('hidden');
     setTimeout(()=>{ input.focus(); messages.scrollTop = messages.scrollHeight; }, 350);
   }
   function closeChat(){
     backdrop.classList.remove('open');
     sheet.classList.remove('open');
+    homeHeader.classList.remove('hidden');
   }
 
   openBtn.addEventListener('click', openChat);
@@ -714,10 +724,12 @@
   function openActivity(){
     backdrop.classList.add('open');
     activitySheet.classList.add('open');
+    homeHeader.classList.add('hidden');
   }
   function closeActivity(){
     backdrop.classList.remove('open');
     activitySheet.classList.remove('open');
+    homeHeader.classList.remove('hidden');
   }
   openActivityBtn.addEventListener('click', openActivity);
   closeActivityBtn.addEventListener('click', closeActivity);
