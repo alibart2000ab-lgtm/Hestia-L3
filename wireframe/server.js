@@ -9,6 +9,10 @@ const app = express();
 app.use(express.json());
 app.use(express.static(__dirname));
 
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'home.html'));
+});
+
 const API_KEY = process.env.GEMINI_API_KEY;
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;

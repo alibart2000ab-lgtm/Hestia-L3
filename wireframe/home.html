@@ -2,8 +2,17 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Hestia</title>
+<meta name="description" content="Hestia, l'assistente domotico di casa tua.">
+<meta name="theme-color" content="#fafafa">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hestia">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
   :root{
     --bg:#fafafa;
@@ -19,6 +28,7 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   html,body{
     height:100%;
+    overscroll-behavior:none;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     background:#1c1c1c;
     display:flex;
@@ -28,23 +38,31 @@
 
   .phone{
     position:relative;
-    width:402px;
-    height:874px;
+    width:100%;
+    max-width:402px;
+    height:100dvh;
+    max-height:874px;
     background:var(--bg);
     border-radius:0px;
     overflow:hidden;
     box-shadow:0 30px 80px rgba(0,0,0,.5);
   }
 
+  @media (min-width:403px) and (min-height:875px){
+    .phone{ border-radius:44px; }
+  }
+
   /* ================= HOME ================= */
   .status-bar{
     position:absolute;
     top:0; left:0; right:0;
-    height:60px;
+    height:calc(60px + env(safe-area-inset-top));
+    padding-top:env(safe-area-inset-top);
     display:flex;
     justify-content:space-between;
     align-items:center;
-    padding:0 28px;
+    padding-left:28px;
+    padding-right:28px;
     font-size:15px;
     font-weight:600;
     color:var(--text-dark);
@@ -55,7 +73,7 @@
 
   .home-header{
     position:absolute;
-    top:60px; left:0; right:0;
+    top:calc(60px + env(safe-area-inset-top)); left:0; right:0;
     height:52px;
     display:flex;
     justify-content:space-between;
@@ -306,7 +324,7 @@
   }
 
   .chat-input-bar{
-    padding:16px 14px 26px;
+    padding:16px 14px calc(26px + env(safe-area-inset-bottom));
     background:linear-gradient(180deg, rgba(249,219,207,0) 0%, #f7bba3 100%);
   }
   .chat-input-wrap{
@@ -366,6 +384,97 @@
   @keyframes typing-bounce{
     0%,60%,100%{ transform:translateY(0); opacity:.5; }
     30%{ transform:translateY(-4px); opacity:1; }
+  }
+
+  /* ================= ACTIVITY OVERLAY ================= */
+  .activity-sheet{
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:0;
+    height:85.1%;
+    background:var(--bg);
+    border-radius:26px 26px 0 0;
+    box-shadow:0 -10px 30px rgba(0,0,0,.2);
+    transform:translateY(100%);
+    transition:transform .35s cubic-bezier(.32,.72,0,1);
+    z-index:11;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .activity-sheet.open{
+    transform:translateY(0);
+  }
+  .activity-header{
+    padding:2px 24px 4px;
+  }
+  .activity-header h2{
+    font-size:24px;
+    font-weight:800;
+    color:var(--text-dark);
+  }
+  .activity-header p{
+    margin-top:6px;
+    font-size:15px;
+    color:#9a938c;
+  }
+  .activity-scroll{
+    flex:1;
+    overflow-y:auto;
+    padding:26px 24px calc(40px + env(safe-area-inset-bottom));
+  }
+  .timeline-item{
+    display:flex;
+    gap:16px;
+  }
+  .timeline-marker{
+    width:10px;
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding-top:6px;
+  }
+  .timeline-dot{
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background:var(--orange);
+    flex-shrink:0;
+  }
+  .timeline-avatar{
+    width:34px;
+    height:34px;
+    margin:-6px -12px 0;
+    flex-shrink:0;
+  }
+  .timeline-avatar img{ width:100%; height:100%; object-fit:contain; }
+  .timeline-line{
+    flex:1;
+    width:2px;
+    min-height:36px;
+    background:var(--orange);
+    margin-top:4px;
+  }
+  .timeline-item:last-child .timeline-line{ display:none; }
+  .timeline-content{
+    padding-bottom:28px;
+  }
+  .timeline-item:last-child .timeline-content{ padding-bottom:0; }
+  .timeline-title{
+    font-size:16px;
+    font-weight:700;
+    color:var(--text-dark);
+  }
+  .timeline-item.pending .timeline-title{
+    font-weight:500;
+    color:#a8a2a0;
+  }
+  .timeline-sub{
+    margin-top:4px;
+    font-size:14px;
+    color:#a8a2a0;
   }
 
   .close-btn{
@@ -430,7 +539,7 @@
       <span>Parla</span>
     </button>
 
-    <button class="action" aria-label="Attività">
+    <button class="action" id="openActivityBtn" aria-label="Attività">
       <div class="circle">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 17l5-6 4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 6h5v5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
@@ -440,6 +549,64 @@
 
   <!-- ===================== CHAT OVERLAY ===================== -->
   <div class="overlay-backdrop" id="backdrop"></div>
+
+  <!-- ===================== ACTIVITY OVERLAY ===================== -->
+  <div class="activity-sheet" id="activitySheet">
+    <button class="close-btn" id="closeActivityBtn" aria-label="Chiudi attività">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+    </button>
+    <div class="sheet-handle"><div class="bar"></div></div>
+    <div class="activity-header">
+      <h2>Attività</h2>
+      <p>Ecco le attività che ho svolto in autonomia</p>
+    </div>
+
+    <div class="activity-scroll" id="activityList">
+      <div class="timeline-item">
+        <div class="timeline-marker">
+          <div class="timeline-dot"></div>
+          <div class="timeline-line"></div>
+        </div>
+        <div class="timeline-content">
+          <div class="timeline-title">Ho acceso la macchina del caffè</div>
+          <div class="timeline-sub">09:00 — Nespresso</div>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-marker">
+          <div class="timeline-dot"></div>
+          <div class="timeline-line"></div>
+        </div>
+        <div class="timeline-content">
+          <div class="timeline-title">Ho aperto le finestre</div>
+          <div class="timeline-sub">09:30 — Finestre camera da letto</div>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-marker">
+          <div class="timeline-dot"></div>
+          <div class="timeline-line"></div>
+        </div>
+        <div class="timeline-content">
+          <div class="timeline-title">Ho alzato le tapparelle</div>
+          <div class="timeline-sub">10:00 — Tapparelle</div>
+        </div>
+      </div>
+
+      <div class="timeline-item pending">
+        <div class="timeline-marker">
+          <div class="timeline-avatar"><img src="hestia_avatar.png" alt="Hestia"></div>
+          <div class="timeline-line"></div>
+        </div>
+        <div class="timeline-content">
+          <div class="timeline-title">Sto pulendo i pavimenti...</div>
+          <div class="timeline-sub">10:15 — Aspirapolvere</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div class="chat-sheet" id="chatSheet">
     <button class="close-btn" id="closeChatBtn" aria-label="Chiudi chat">
@@ -521,6 +688,66 @@
   openBtn.addEventListener('click', openChat);
   closeBtn.addEventListener('click', closeChat);
   backdrop.addEventListener('click', closeChat);
+
+  /* ================= PANNELLO ATTIVITÀ ================= */
+  const openActivityBtn = document.getElementById('openActivityBtn');
+  const closeActivityBtn = document.getElementById('closeActivityBtn');
+  const activitySheet = document.getElementById('activitySheet');
+  const activityList = document.getElementById('activityList');
+
+  function openActivity(){
+    backdrop.classList.add('open');
+    activitySheet.classList.add('open');
+  }
+  function closeActivity(){
+    backdrop.classList.remove('open');
+    activitySheet.classList.remove('open');
+  }
+  openActivityBtn.addEventListener('click', openActivity);
+  closeActivityBtn.addEventListener('click', closeActivity);
+  backdrop.addEventListener('click', closeActivity);
+
+  const backgroundTasks = [
+    { done: 'Ho pulito i pavimenti', pending: 'Sto pulendo i pavimenti...', detail: 'Aspirapolvere' },
+    { done: 'Ho regolato il termostato', pending: 'Sto regolando il termostato...', detail: 'Soggiorno' },
+    { done: 'Ho innaffiato le piante', pending: 'Sto innaffiando le piante...', detail: 'Terrazzo' },
+    { done: 'Ho avviato la lavastoviglie', pending: 'Sto avviando la lavastoviglie...', detail: 'Cucina' },
+    { done: 'Ho attivato l\'allarme', pending: 'Sto attivando l\'allarme...', detail: 'Sicurezza' },
+  ];
+  let taskIndex = 0;
+
+  function completeAndQueueNextTask(){
+    const pendingItem = activityList.querySelector('.timeline-item.pending');
+    if(!pendingItem) return;
+
+    const task = backgroundTasks[taskIndex % backgroundTasks.length];
+
+    pendingItem.classList.remove('pending');
+    pendingItem.querySelector('.timeline-title').textContent = task.done;
+    const marker = pendingItem.querySelector('.timeline-marker');
+    marker.innerHTML = '<div class="timeline-dot"></div><div class="timeline-line"></div>';
+
+    taskIndex++;
+    const next = backgroundTasks[taskIndex % backgroundTasks.length];
+    const now = new Date();
+    const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+
+    const newItem = document.createElement('div');
+    newItem.className = 'timeline-item pending';
+    newItem.innerHTML = `
+      <div class="timeline-marker">
+        <div class="timeline-avatar"><img src="hestia_avatar.png" alt="Hestia"></div>
+        <div class="timeline-line"></div>
+      </div>
+      <div class="timeline-content">
+        <div class="timeline-title">${next.pending}</div>
+        <div class="timeline-sub">${time} — ${next.detail}</div>
+      </div>`;
+    activityList.appendChild(newItem);
+
+    setTimeout(completeAndQueueNextTask, 6000 + Math.random() * 4000);
+  }
+  setTimeout(completeAndQueueNextTask, 6000 + Math.random() * 4000);
 
   function nowTime(){
     const now = new Date();
@@ -816,6 +1043,15 @@
       console.warn('Impossibile avviare il riconoscimento vocale:', err);
     }
   });
+
+  /* ================= SERVICE WORKER (PWA) ================= */
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch((err) => {
+        console.warn('Registrazione service worker fallita:', err);
+      });
+    });
+  }
 </script>
 
 </body>
